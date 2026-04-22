@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "local-signer": {
+      "command": "/full/path/to/node",
+      "args": ["dist/index.js"],
+      "cwd": "/absolute/path/to/local-signer-mcp",
+      "env": {
+        "LOCAL_SIGNER_EVM_PRIVATE_KEY": "0xyourprivatekey",
+        "LOCAL_SIGNER_EVM_RPC_URL": "https://your-rpc.example"
+      }
+    }
+  }
+}
