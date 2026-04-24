@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "local-signer": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--env-file",
+        "/absolute/path/to/local-signer.env",
+        "allbridge/local-signer-mcp:latest",
+        "node",
+        "dist/index.js"
+      ],
+      "env": {}
+    }
+  }
+}
