@@ -149,7 +149,7 @@ jest.mock('@stellar/stellar-sdk', () => ({
   },
 }));
 
-const ALGORAND_FAKE_SECRET_KEY = Buffer.from('algorand-test-fixture', 'utf8').toString('hex');
+const ALGORAND_FAKE_SECRET_KEY = '11'.repeat(64);
 
 jest.mock('@stacks/network', () => ({
   STACKS_MAINNET: { client: { baseUrl: 'https://stacks.mainnet' }, chainId: 1 },
