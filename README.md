@@ -22,10 +22,12 @@ Supported chain families:
 - EVM
 - Solana
 - Tron
-- Algorand
 - Stacks
 - Soroban / Stellar
-- Sui
+
+Transactions built by [`allbridge-mcp`](https://github.com/allbridge-io/allbridge-mcp) execution jobs are passed to the signer as is.
+
+Unsigned Solana and Tron transactions are kept fresh at signing time: the signer replaces the Solana blockhash (unless the transaction is already partially signed or uses a durable nonce) and extends a Tron transaction that has less than two minutes left, so a transaction built a few minutes earlier still lands.
 
 ## Capability Boundary
 
@@ -43,7 +45,7 @@ Those responsibilities belong to [`allbridge-mcp`](https://github.com/allbridge-
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22.12+
 - `pnpm`
 - One or more private keys and RPC URLs configured through environment variables
 - Optional: Docker, if you prefer a containerized local process
@@ -88,15 +90,11 @@ Common variables:
 | `LOCAL_SIGNER_SOL_RPC_URL` | Default Solana RPC URL |
 | `LOCAL_SIGNER_TRX_PRIVATE_KEY` | Default Tron private key |
 | `LOCAL_SIGNER_TRX_RPC_URL` | Default Tron full node URL |
-| `LOCAL_SIGNER_ALG_PRIVATE_KEY` | Default Algorand secret key encoded as hex |
-| `LOCAL_SIGNER_ALG_RPC_URL` | Default Algorand algod URL |
 | `LOCAL_SIGNER_STX_PRIVATE_KEY` | Default Stacks private key |
 | `LOCAL_SIGNER_STX_RPC_URL` | Default Stacks node URL |
 | `LOCAL_SIGNER_SRB_PRIVATE_KEY` | Default Soroban / Stellar secret key |
 | `LOCAL_SIGNER_SRB_RPC_URL` | Default Soroban RPC URL |
 | `LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE` | Soroban / Stellar network passphrase |
-| `LOCAL_SIGNER_SUI_PRIVATE_KEY` | Default Sui private key |
-| `LOCAL_SIGNER_SUI_RPC_URL` | Default Sui RPC URL |
 
 For multiple wallets, use wallet slots:
 

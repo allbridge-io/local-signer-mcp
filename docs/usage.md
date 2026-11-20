@@ -54,7 +54,7 @@ For EVM, the signer resolves credentials in this order:
 6. `LOCAL_SIGNER_EVM_PRIVATE_KEY` / `LOCAL_SIGNER_EVM_RPC_URL`
 
 When multiple wallets exist for the same EVM chain, set `walletId` or `from` explicitly. If the signer cannot choose a single wallet deterministically, it fails instead of guessing.
-For Solana, Tron, Algorand, Stacks, Soroban / Stellar, and Sui, set `walletId` explicitly when more than one wallet is configured for that family.
+For Solana, Tron, Stacks, and Soroban / Stellar, set `walletId` explicitly when more than one wallet is configured for that family.
 
 ### `broadcast_transaction`
 
@@ -62,7 +62,9 @@ Broadcasts an already signed transaction.
 
 ### `sign_and_broadcast_transaction`
 
-Signs an unsigned transaction and immediately broadcasts it.
+Signs an unsigned transaction and immediately broadcasts it. Steps of an `allbridge-mcp` execution job carry their `transaction` in exactly this input shape.
+
+Before signing, an unsigned Solana transaction gets a fresh blockhash and an unsigned Tron transaction with less than two minutes left is extended, so transactions built earlier in a job still land. A Tron broadcast the node rejects fails with the node's error code.
 
 ## Remote Transport
 
@@ -85,13 +87,9 @@ Non-EVM families use the same slot-based naming pattern for multiple wallets:
 - `LOCAL_SIGNER_SOL_WALLET_<walletId>_RPC_URL`
 - `LOCAL_SIGNER_TRX_WALLET_<walletId>_PRIVATE_KEY`
 - `LOCAL_SIGNER_TRX_WALLET_<walletId>_RPC_URL`
-- `LOCAL_SIGNER_ALG_WALLET_<walletId>_PRIVATE_KEY`
-- `LOCAL_SIGNER_ALG_WALLET_<walletId>_RPC_URL`
 - `LOCAL_SIGNER_STX_WALLET_<walletId>_PRIVATE_KEY`
 - `LOCAL_SIGNER_STX_WALLET_<walletId>_RPC_URL`
   - the signer probes the selected RPC via `/v2/info` and fails fast if the resolved mainnet/testnet network does not match the wallet address
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_PRIVATE_KEY`
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_RPC_URL`
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_NETWORK_PASSPHRASE`
-- `LOCAL_SIGNER_SUI_WALLET_<walletId>_PRIVATE_KEY`
-- `LOCAL_SIGNER_SUI_WALLET_<walletId>_RPC_URL`
