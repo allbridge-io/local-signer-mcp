@@ -40,12 +40,6 @@ const tronUnsignedTransactionSchema = z.object({
   rawTransaction: z.record(z.unknown()),
 });
 
-const algUnsignedTransactionSchema = z.object({
-  chainFamily: z.literal('ALG'),
-  walletId: z.string().trim().min(1).optional(),
-  serializedTransactionsHex: z.array(z.string().trim().min(1)).min(1),
-});
-
 const stxUnsignedTransactionSchema = z.object({
   chainFamily: z.literal('STX'),
   walletId: z.string().trim().min(1).optional(),
@@ -58,24 +52,16 @@ const srbUnsignedTransactionSchema = z.object({
   serializedTransactionXdr: z.string().trim().min(1),
 });
 
-const suiUnsignedTransactionSchema = z.object({
-  chainFamily: z.literal('SUI'),
-  walletId: z.string().trim().min(1).optional(),
-  serializedTransaction: z.union([z.string().trim().min(1), z.record(z.unknown())]),
-});
-
 const unsignedTransactionSchema = z.discriminatedUnion('chainFamily', [
   evmUnsignedTransactionSchema,
   solanaUnsignedTransactionSchema,
   tronUnsignedTransactionSchema,
-  algUnsignedTransactionSchema,
   stxUnsignedTransactionSchema,
   srbUnsignedTransactionSchema,
-  suiUnsignedTransactionSchema,
 ]);
 
 const mcpUnsignedTransactionSchema = z.object({
-  chainFamily: z.enum(['EVM', 'SOLANA', 'TRX', 'ALG', 'STX', 'SRB', 'SUI']).describe('Target chain family for the unsigned transaction.'),
+  chainFamily: z.enum(['EVM', 'SOLANA', 'TRX', 'STX', 'SRB']).describe('Target chain family for the unsigned transaction.'),
   walletId: z.string().trim().min(1).optional().describe('Optional wallet selector when multiple wallets are configured for the same family.'),
   chainId: z.number().int().positive().optional().describe('EVM chain ID, required for EVM transactions.'),
   chainSymbol: z.string().trim().min(1).optional().describe('Optional EVM chain symbol or alias.'),
@@ -91,22 +77,17 @@ const mcpUnsignedTransactionSchema = z.object({
   type: z.number().int().optional().describe('Optional transaction type override for EVM transactions.'),
   serializedTransactionHex: z.string().trim().min(1).optional().describe('Serialized Solana or Stacks transaction hex payload.'),
   rawTransaction: z.record(z.unknown()).optional().describe('Raw Tron transaction payload.'),
-  serializedTransactionsHex: z.array(z.string().trim().min(1)).optional().describe('Serialized Algorand transactions hex payloads.'),
   serializedTransactionXdr: z.string().trim().min(1).optional().describe('Serialized Soroban / Stellar transaction XDR.'),
-  serializedTransaction: z.union([z.string().trim().min(1), z.record(z.unknown())]).optional().describe('Serialized Sui transaction payload.'),
 });
 
 const mcpSignedTransactionSchema = z.object({
-  chainFamily: z.enum(['EVM', 'SOLANA', 'TRX', 'ALG', 'STX', 'SRB', 'SUI']).describe('Target chain family for the signed transaction.'),
+  chainFamily: z.enum(['EVM', 'SOLANA', 'TRX', 'STX', 'SRB']).describe('Target chain family for the signed transaction.'),
   walletId: z.string().trim().min(1).optional().describe('Optional wallet selector when multiple wallets are configured for the same family.'),
   chainId: z.number().int().positive().optional().describe('EVM chain ID, required for EVM signed transactions.'),
   chainSymbol: z.string().trim().min(1).optional().describe('Optional EVM chain symbol or alias.'),
   signedTransaction: z.string().trim().min(1).optional().describe('Signed EVM transaction hex or Tron signed transaction object.'),
   signedTransactionHex: z.string().trim().min(1).optional().describe('Signed Solana or Stacks transaction hex payload.'),
-  signedTransactionsBase64: z.array(z.string().trim().min(1)).optional().describe('Signed Algorand transaction payloads.'),
   signedTransactionXdr: z.string().trim().min(1).optional().describe('Signed Soroban / Stellar transaction XDR.'),
-  bytesBase64: z.string().trim().min(1).optional().describe('Signed Sui transaction bytes.'),
-  signature: z.string().trim().min(1).optional().describe('Signed Sui signature.'),
 });
 
 const evmSignedTransactionSchema = z.object({
@@ -129,12 +110,6 @@ const tronSignedTransactionSchema = z.object({
   signedTransaction: z.record(z.unknown()),
 });
 
-const algSignedTransactionSchema = z.object({
-  chainFamily: z.literal('ALG'),
-  walletId: z.string().trim().min(1).optional(),
-  signedTransactionsBase64: z.array(z.string().trim().min(1)).min(1),
-});
-
 const stxSignedTransactionSchema = z.object({
   chainFamily: z.literal('STX'),
   walletId: z.string().trim().min(1).optional(),
@@ -147,23 +122,12 @@ const srbSignedTransactionSchema = z.object({
   signedTransactionXdr: z.string().trim().min(1),
 });
 
-const suiSignedTransactionSchema = z.object({
-  chainFamily: z.literal('SUI'),
-  walletId: z.string().trim().min(1).optional(),
-  signedTransaction: z.object({
-    bytesBase64: z.string().trim().min(1),
-    signature: z.string().trim().min(1),
-  }),
-});
-
 const signedTransactionSchema = z.discriminatedUnion('chainFamily', [
   evmSignedTransactionSchema,
   solanaSignedTransactionSchema,
   tronSignedTransactionSchema,
-  algSignedTransactionSchema,
   stxSignedTransactionSchema,
   srbSignedTransactionSchema,
-  suiSignedTransactionSchema,
 ]);
 
 type LocalSignerDependencies = {

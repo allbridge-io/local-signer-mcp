@@ -1,9 +1,12 @@
 {
   "name": "local-signer-mcp",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Localhost-oriented MCP server for transaction signing and submission",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint src test --ext .ts",
@@ -13,17 +16,15 @@
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config ./jest.config.cjs --passWithNoTests --runInBand"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.26.0",
-    "@mysten/sui": "1.45.2",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@solana/web3.js": "1.98.4",
-    "@stacks/network": "7.3.1",
-    "@stacks/transactions": "7.4.0",
-    "@stellar/stellar-sdk": "^15.0.1",
-    "algosdk": "3.5.2",
+    "@stacks/network": "7.7.0",
+    "@stacks/transactions": "7.7.0",
+    "@stellar/stellar-sdk": "17.4.0",
     "bs58": "6.0.0",
     "dotenv": "16.6.1",
-    "ethers": "6.15.0",
-    "tronweb": "6.0.1",
+    "ethers": "6.17.0",
+    "tronweb": "6.5.2",
     "undici": "6.24.0",
     "zod": "3.25.76"
   },
@@ -31,8 +32,8 @@
     "@jest/globals": "30.3.0",
     "@types/jest": "30.0.0",
     "@types/node": "22.18.0",
-    "@typescript-eslint/eslint-plugin": "8.42.0",
-    "@typescript-eslint/parser": "8.42.0",
+    "@typescript-eslint/eslint-plugin": "8.73.0",
+    "@typescript-eslint/parser": "8.73.0",
     "eslint": "10.2.1",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.5",
@@ -44,7 +45,7 @@
   },
   "pnpm": {
     "overrides": {
-      "tronweb": "6.0.1",
+      "tronweb": "6.5.2",
       "axios@>=1.0.0 <=1.13.4": ">=1.13.5",
       "validator": ">=13.15.22",
       "valibot@>=0.31.0 <1.0.0": ">=1.0.0",

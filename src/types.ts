@@ -1,4 +1,4 @@
-export type ChainFamily = 'EVM' | 'SOLANA' | 'TRX' | 'ALG' | 'STX' | 'SRB' | 'SUI';
+export type ChainFamily = 'EVM' | 'SOLANA' | 'TRX' | 'STX' | 'SRB';
 
 export interface UnsignedEvmTransaction {
   chainFamily: 'EVM';
@@ -29,12 +29,6 @@ export interface UnsignedTronTransaction {
   rawTransaction: Record<string, unknown>;
 }
 
-export interface UnsignedAlgorandTransaction {
-  chainFamily: 'ALG';
-  walletId?: string;
-  serializedTransactionsHex: string[];
-}
-
 export interface UnsignedStacksTransaction {
   chainFamily: 'STX';
   walletId?: string;
@@ -47,20 +41,12 @@ export interface UnsignedSorobanTransaction {
   serializedTransactionXdr: string;
 }
 
-export interface UnsignedSuiTransaction {
-  chainFamily: 'SUI';
-  walletId?: string;
-  serializedTransaction: string | Record<string, unknown>;
-}
-
 export type UnsignedTransaction =
   | UnsignedEvmTransaction
   | UnsignedSolanaTransaction
   | UnsignedTronTransaction
-  | UnsignedAlgorandTransaction
   | UnsignedStacksTransaction
-  | UnsignedSorobanTransaction
-  | UnsignedSuiTransaction;
+  | UnsignedSorobanTransaction;
 
 export interface SignedEvmTransaction {
   chainFamily: 'EVM';
@@ -82,12 +68,6 @@ export interface SignedTronTransaction {
   signedTransaction: Record<string, unknown>;
 }
 
-export interface SignedAlgorandTransaction {
-  chainFamily: 'ALG';
-  walletId?: string;
-  signedTransactionsBase64: string[];
-}
-
 export interface SignedStacksTransaction {
   chainFamily: 'STX';
   walletId?: string;
@@ -100,23 +80,12 @@ export interface SignedSorobanTransaction {
   signedTransactionXdr: string;
 }
 
-export interface SignedSuiTransaction {
-  chainFamily: 'SUI';
-  walletId?: string;
-  signedTransaction: {
-    bytesBase64: string;
-    signature: string;
-  };
-}
-
 export type SignedTransaction =
   | SignedEvmTransaction
   | SignedSolanaTransaction
   | SignedTronTransaction
-  | SignedAlgorandTransaction
   | SignedStacksTransaction
-  | SignedSorobanTransaction
-  | SignedSuiTransaction;
+  | SignedSorobanTransaction;
 
 export interface WalletCapability {
   walletType: 'local_private_key';
