@@ -85,7 +85,10 @@ const mcpSignedTransactionSchema = z.object({
   walletId: z.string().trim().min(1).optional().describe('Optional wallet selector when multiple wallets are configured for the same family.'),
   chainId: z.number().int().positive().optional().describe('EVM chain ID, required for EVM signed transactions.'),
   chainSymbol: z.string().trim().min(1).optional().describe('Optional EVM chain symbol or alias.'),
-  signedTransaction: z.string().trim().min(1).optional().describe('Signed EVM transaction hex or Tron signed transaction object.'),
+  signedTransaction: z
+    .union([z.string().trim().min(1), z.record(z.unknown())])
+    .optional()
+    .describe('Signed EVM transaction hex, or the Tron signed transaction object returned by sign_transaction.'),
   signedTransactionHex: z.string().trim().min(1).optional().describe('Signed Solana or Stacks transaction hex payload.'),
   signedTransactionXdr: z.string().trim().min(1).optional().describe('Signed Soroban / Stellar transaction XDR.'),
 });

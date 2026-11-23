@@ -713,6 +713,11 @@ async function broadcastStacksSignedTransaction(signedTransactionHex: string, wa
   validateStacksAddressForNetwork(context.address, context, resolvedNetwork);
   const tx = deserializeTransaction(new BytesReader(Buffer.from(normalizeHex(signedTransactionHex), 'hex')));
   const response = await broadcastTransaction({ transaction: tx, network: resolvedNetwork.network });
+  // The node answers a rejection with { error, reason } instead of an HTTP error.
+  if ('error' in response) {
+    const reason = 'reason' in response ? ` (${String(response.reason)})` : '';
+    throw new Error(`Stacks node rejected the transaction: ${String(response.error)}${reason}`);
+  }
 
   return {
     chainFamily: 'STX',
@@ -726,6 +731,9 @@ async function broadcastSorobanSignedTransaction(signedTransactionXdr: string, w
   const server = getSorobanClientForContext(context);
   const transaction = TransactionBuilder.fromXDR(signedTransactionXdr, context.networkPassphrase) as StellarTransaction;
   const sent = await server.sendTransaction(transaction);
+  if (sent.status === 'ERROR' || sent.status === 'TRY_AGAIN_LATER') {
+    throw new Error(`Stellar rejected the transaction (${sent.status}): ${JSON.stringify(sent.errorResult ?? sent)}`);
+  }
 
   return {
     chainFamily: 'SRB',

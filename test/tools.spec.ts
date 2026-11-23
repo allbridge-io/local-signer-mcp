@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { z } from 'zod';
 
 import { registerLocalSignerTools } from '../src/tools.js';
 
@@ -10,9 +11,15 @@ type ToolHandler = (args: Record<string, unknown>) => Promise<{
 
 class FakeMcpServer {
   readonly handlers = new Map<string, ToolHandler>();
+  readonly inputSchemas = new Map<string, z.ZodRawShape>();
 
-  registerTool(_name: string, _definition: unknown, handler: unknown): void {
-    this.handlers.set(_name, handler as ToolHandler);
+  registerTool(name: string, definition: { inputSchema: z.ZodRawShape }, handler: unknown): void {
+    this.handlers.set(name, handler as ToolHandler);
+    this.inputSchemas.set(name, definition.inputSchema);
+  }
+
+  parseInput(name: string, input: Record<string, unknown>) {
+    return z.object(this.inputSchemas.get(name) ?? {}).safeParse(input);
   }
 
   getHandler(name: string): ToolHandler {
@@ -100,6 +107,17 @@ describe('registerLocalSignerTools', () => {
         signedTransaction: '0xsigned',
       },
     });
+  });
+
+  test('broadcast_transaction accepts the Tron signed transaction object from sign_transaction', () => {
+    const tron = server.parseInput('broadcast_transaction', {
+      chainFamily: 'TRX',
+      signedTransaction: { txID: 'abc', raw_data: {}, signature: ['00'] },
+    });
+    expect(tron.success).toBe(true);
+
+    const evm = server.parseInput('broadcast_transaction', { chainFamily: 'EVM', chainId: 1, signedTransaction: '0x02f8' });
+    expect(evm.success).toBe(true);
   });
 
   test('broadcast_transaction returns the broadcast result', async () => {

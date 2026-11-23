@@ -8,7 +8,6 @@ RUN apk update && \
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 
 WORKDIR /app
-ENV NODE_ENV=production
 
 COPY package.json ./
 COPY .npmrc ./
@@ -28,6 +27,7 @@ COPY .env.example ./
 RUN pnpm install --frozen-lockfile
 
 RUN pnpm build
+RUN pnpm prune --prod
 
 FROM node:24-alpine
 
@@ -37,7 +37,7 @@ RUN apk update && \
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV MCP_TRANSPORT=stdio
+ENV LOCAL_SIGNER_TRANSPORT=stdio
 
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
