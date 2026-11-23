@@ -77,7 +77,7 @@ The package ships a `local-signer-mcp` binary. Pin an exact version: this proces
 claude mcp add local-signer \
   --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=<private-key> \
   --env LOCAL_SIGNER_EVM_RPC_URL_ARB=<rpc-url> \
-  -- npx -y local-signer-mcp@0.2.0
+  -- npx -y @allbridge/local-signer-mcp@0.2.0
 ```
 
 ```json
@@ -85,7 +85,7 @@ claude mcp add local-signer \
   "mcpServers": {
     "local-signer": {
       "command": "npx",
-      "args": ["-y", "local-signer-mcp@0.2.0"],
+      "args": ["-y", "@allbridge/local-signer-mcp@0.2.0"],
       "env": { "LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB": "<private-key>", "LOCAL_SIGNER_EVM_RPC_URL_ARB": "<rpc-url>" }
     }
   }

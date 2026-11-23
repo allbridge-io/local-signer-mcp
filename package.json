@@ -1,5 +1,5 @@
 {
-  "name": "local-signer-mcp",
+  "name": "@allbridge/local-signer-mcp",
   "version": "0.2.0",
   "description": "Localhost-oriented MCP server for transaction signing and submission",
   "bin": {
@@ -11,6 +11,9 @@
     "README.md",
     "SKILL.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
