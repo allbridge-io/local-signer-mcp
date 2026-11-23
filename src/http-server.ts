@@ -89,7 +89,7 @@ export async function startStreamableHttpServer(
 ): Promise<HttpServer> {
   const requestListener = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (req.url === '/health') {
-      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: '0.1.0' });
+      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: '0.2.0' });
       return;
     }
 

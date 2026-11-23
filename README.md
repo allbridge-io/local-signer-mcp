@@ -69,6 +69,29 @@ claude mcp add local-signer \
   -- /absolute/path/to/node /absolute/path/to/local-signer-mcp/dist/index.js
 ```
 
+### Run with npx
+
+The package ships a `local-signer-mcp` binary. Pin an exact version: this process holds private keys, so it should never pick up a new release on its own.
+
+```bash
+claude mcp add local-signer \
+  --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=<private-key> \
+  --env LOCAL_SIGNER_EVM_RPC_URL_ARB=<rpc-url> \
+  -- npx -y local-signer-mcp@0.2.0
+```
+
+```json
+{
+  "mcpServers": {
+    "local-signer": {
+      "command": "npx",
+      "args": ["-y", "local-signer-mcp@0.2.0"],
+      "env": { "LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB": "<private-key>", "LOCAL_SIGNER_EVM_RPC_URL_ARB": "<rpc-url>" }
+    }
+  }
+}
+```
+
 More client recipes live in [`docs/client-integrations.md`](./docs/client-integrations.md).
 
 ## Configuration

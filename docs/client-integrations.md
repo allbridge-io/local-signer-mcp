@@ -2,6 +2,30 @@
 
 Use `stdio` whenever the MCP client can launch a local process on the same machine as the private keys. Use `streamable-http` only when the client requires a URL.
 
+## Path Or npx
+
+The recipes below start a local checkout (`node /absolute/path/to/local-signer-mcp/dist/index.js`). To run the published package, replace the command with `npx` and pin an exact version, since this process holds private keys:
+
+```json
+{ "command": "npx", "args": ["-y", "local-signer-mcp@0.2.0"] }
+```
+
+The `env` block stays the same. Set a key and an RPC per EVM chain (`LOCAL_SIGNER_EVM_PRIVATE_KEY_<CHAIN>`, `LOCAL_SIGNER_EVM_RPC_URL_<CHAIN>`); with only the defaults, every EVM chain uses the same RPC.
+
+## Codex
+
+In `~/.codex/config.toml` (keep the file readable only by you: `chmod 600`):
+
+```toml
+[mcp_servers.local-signer]
+command = "npx"
+args = ["-y", "local-signer-mcp@0.2.0"]
+
+[mcp_servers.local-signer.env]
+LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB = "<private-key>"
+LOCAL_SIGNER_EVM_RPC_URL_ARB = "<rpc-url>"
+```
+
 ## Claude Desktop
 
 Open `Settings` -> `Developer` -> `Local MCP servers` -> `Edit Config`, then merge this entry into the existing JSON.
