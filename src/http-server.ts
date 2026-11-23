@@ -5,6 +5,8 @@ import { createServer as createHttpsServer } from 'node:https';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
+import { PACKAGE_VERSION } from './version.js';
+
 export interface ManagedMcpSession {
   readonly sessionId: string | undefined;
   handleRequest(req: IncomingMessage, res: ServerResponse, parsedBody?: unknown): Promise<void>;
@@ -89,7 +91,7 @@ export async function startStreamableHttpServer(
 ): Promise<HttpServer> {
   const requestListener = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     if (req.url === '/health') {
-      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: '0.2.0' });
+      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: PACKAGE_VERSION });
       return;
     }
 

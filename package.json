@@ -2,6 +2,10 @@
   "name": "@allbridge/local-signer-mcp",
   "version": "0.2.0",
   "description": "Localhost-oriented MCP server for transaction signing and submission",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/allbridge-io/local-signer-mcp.git"
+  },
   "bin": {
     "local-signer-mcp": "dist/index.js"
   },

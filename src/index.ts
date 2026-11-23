@@ -5,11 +5,12 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { registerLocalSignerTools } from './tools.js';
 import { config } from './config.js';
 import { createLocalSignerSession, startStreamableHttpServer } from './http-server.js';
+import { PACKAGE_VERSION } from './version.js';
 
 function createServer(): McpServer {
   const server = new McpServer({
     name: 'local-signer-mcp',
-    version: '0.2.0'
+    version: PACKAGE_VERSION
   });
 
   registerLocalSignerTools(server);
