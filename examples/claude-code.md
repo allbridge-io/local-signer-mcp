@@ -8,7 +8,7 @@ Published package:
 claude mcp add local-signer \
   --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=0xyourprivatekey \
   --env LOCAL_SIGNER_EVM_RPC_URL_ARB=https://your-arbitrum-rpc.example \
-  -- npx -y @allbridge/local-signer-mcp@0.2.0
+  -- npx -y @allbridge/local-signer-mcp@1.0.0
 ```
 
 Local checkout (after `pnpm build`):

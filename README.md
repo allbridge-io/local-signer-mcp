@@ -5,7 +5,7 @@
 It signs fully formed unsigned transactions for supported chain families and can optionally submit the signed payload. It does not plan bridge routes, quote transfers, or encode Allbridge protocol business logic.
 
 - Repository: [github.com/allbridge-io/local-signer-mcp](https://github.com/allbridge-io/local-signer-mcp)
-- npm: [`@allbridge/local-signer-mcp`](https://www.npmjs.com/package/@allbridge/local-signer-mcp) (`npx -y @allbridge/local-signer-mcp@0.2.0`)
+- npm: [`@allbridge/local-signer-mcp`](https://www.npmjs.com/package/@allbridge/local-signer-mcp) (`npx -y @allbridge/local-signer-mcp@1.0.0`)
 - End-to-end usage guide: [`docs/usage.md`](./docs/usage.md)
 - Pairs with: [`allbridge-mcp`](https://github.com/allbridge-io/allbridge-mcp)
 
@@ -77,7 +77,7 @@ The package ships a `local-signer-mcp` binary. Pin an exact version: this proces
 claude mcp add local-signer \
   --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=<private-key> \
   --env LOCAL_SIGNER_EVM_RPC_URL_ARB=<rpc-url> \
-  -- npx -y @allbridge/local-signer-mcp@0.2.0
+  -- npx -y @allbridge/local-signer-mcp@1.0.0
 ```
 
 ```json
@@ -85,7 +85,7 @@ claude mcp add local-signer \
   "mcpServers": {
     "local-signer": {
       "command": "npx",
-      "args": ["-y", "@allbridge/local-signer-mcp@0.2.0"],
+      "args": ["-y", "@allbridge/local-signer-mcp@1.0.0"],
       "env": { "LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB": "<private-key>", "LOCAL_SIGNER_EVM_RPC_URL_ARB": "<rpc-url>" }
     }
   }
@@ -218,7 +218,7 @@ docker run -i --rm \
 
 CI (`.github/workflows/ci.yml`) runs lint, tests and the build on every pull request and on every push to `master`. On a push to `master` it publishes `@allbridge/local-signer-mcp` to npm when the `version` in `package.json` is not on npm yet, then tags `v<version>` and creates a GitHub release.
 
-To release, bump `version` in the pull request ([semver](https://semver.org): while on `0.x`, a patch for fixes and a minor for features or breaking changes). Merging a pull request without a version bump publishes nothing.
+To release, bump `version` in the pull request ([semver](https://semver.org): a patch for fixes, a minor for backward-compatible features, a major for breaking changes). Merging a pull request without a version bump publishes nothing.
 
 Publishing uses npm trusted publishing (GitHub OIDC), so there is no npm token in the repository. One-time setup:
 
