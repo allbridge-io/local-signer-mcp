@@ -17,15 +17,15 @@ Do not use it for route selection, quoting, or protocol planning.
 1. Call `get_wallet_capabilities`
 2. Call `get_accounts` when the workflow needs the local sender address
 3. Call either:
-   - `sign_transaction` and then `broadcast_transaction`
-   - or `sign_and_broadcast_transaction`
+   - `sign_and_broadcast_transaction`, the usual path;
+   - or `sign_transaction`, then `broadcast_transaction` with the returned `signedTransaction` object unchanged.
 
 ## Rules
 
 - Always include `chainFamily` in transaction payloads. Supported families: `EVM`, `SOLANA`, `TRX`, `STX`, `SRB`.
-- Steps of an `allbridge-mcp` execution job are already in this shape: pass `step.transaction` as is, in step order, waiting for steps marked `waitForConfirmation` to confirm.
+- Steps of an `allbridge-mcp` execution job are already in this shape: pass `step.transaction` as is, in step order, waiting for steps marked `waitForConfirmation` to confirm. The signer waits for EVM receipts and Solana confirmations itself; Tron, Stacks and Stellar broadcasts return once the node accepts them, so confirm those another way (for example `allbridge-mcp` `get_transfer_status`, or the chain explorer) before the next step.
 - Only pass fully formed unsigned transaction payloads.
 - Use `sign_transaction` when the caller wants to inspect or store the signed payload before broadcast.
 - Use `sign_and_broadcast_transaction` when the caller wants a single-step execution path.
-- Keep this server local. It is not meant to expose keys on a shared remote deployment.
-- For EVM, resolve credentials by `walletId` or `from` first when present, then by slot-scoped EVM envs, then by `chainSymbol`, then by `chainId`, then by the default EVM env vars.
+- Keep this server local. Its HTTP mode has no authentication, so never expose it to a network or a remote connector.
+- EVM wallet choice: `walletId` wins when given. Otherwise the signer keeps the wallets matching the transaction chain and `from`, prefers one configured for that chain (a per-chain key) over the default key, and fails if that still leaves more than one. Pass `walletId` (from `get_accounts`) when several wallets serve the same chain.

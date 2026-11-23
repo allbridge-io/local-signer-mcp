@@ -20,17 +20,17 @@ Expected result:
 
 ## 2. Sign a transaction
 
-Request:
+Request (with `LOCAL_SIGNER_EVM_PRIVATE_KEY_ETH` / `LOCAL_SIGNER_EVM_RPC_URL_ETH` configured, walletId `ETH`):
 
 ```json
 {
   "name": "sign_transaction",
   "arguments": {
     "chainFamily": "EVM",
-    "chainId": 11155111,
+    "chainId": 1,
     "chainSymbol": "ETH",
-    "walletId": "MAINNET",
-    "to": "0xcontract",
+    "walletId": "ETH",
+    "to": "0x1111111111111111111111111111111111111111",
     "data": "0x1234",
     "value": "0"
   }
@@ -39,22 +39,19 @@ Request:
 
 Expected result:
 
-- `from`
-- `walletId`
-- `nonce`
-- `signedTransaction`
-- prepared transaction fields used for signing
+- `chainFamily`, `walletId`, `walletAddress`, `chainId`, `chainSymbol`
+- `signedTransaction`: `{ chainFamily, chainId, chainSymbol, walletId, signedTransaction }`, the input of `broadcast_transaction`
 
 ## 3. Sign and broadcast a Solana transaction
 
-Request:
+Request (the default Solana key has the walletId `SOLANA_DEFAULT`; a slot `LOCAL_SIGNER_SOL_WALLET_MAIN_*` would be `MAIN`):
 
 ```json
 {
   "name": "sign_and_broadcast_transaction",
   "arguments": {
     "chainFamily": "SOLANA",
-    "walletId": "SOLANA_MAIN",
+    "walletId": "SOLANA_DEFAULT",
     "serializedTransactionHex": "deadbeef"
   }
 }
@@ -62,36 +59,39 @@ Request:
 
 Expected result:
 
-- `txHash`
-- `walletId`
-- signed payload
-- broadcast result
+- `signResult`: as in step 2, with `signedTransaction.signedTransactionHex`
+- `broadcastResult`: `{ chainFamily, txHash, receipt }` (`receipt` is `null` for Solana)
 
 ## 4. Broadcast a signed transaction
 
-Request:
+Request: the `signedTransaction` object from `sign_transaction`, unchanged.
 
 ```json
 {
   "name": "broadcast_transaction",
   "arguments": {
     "chainFamily": "EVM",
-    "chainId": 11155111,
+    "chainId": 1,
     "chainSymbol": "ETH",
-    "walletId": "MAINNET",
+    "walletId": "ETH",
     "signedTransaction": "0xdeadbeef"
   }
 }
 ```
 
-Expected result:
+Expected result: `chainFamily`, `txHash`, `receipt`.
 
-- `txHash`
-- `walletId`
-- `receipt`
+## Payloads by family
+
+| `chainFamily` | Unsigned input | Signed input of `broadcast_transaction` |
+|---------------|----------------|------------------------------------------|
+| `EVM` | `chainId`, `chainSymbol`, `from`, `to`, `data`, `value` | `signedTransaction` (hex) |
+| `SOLANA` | `serializedTransactionHex` | `signedTransactionHex` |
+| `TRX` | `rawTransaction` (object) | `signedTransaction` (object) |
+| `STX` | `serializedTransactionHex` | `signedTransactionHex` |
+| `SRB` | `serializedTransactionXdr` | `signedTransactionXdr` |
 
 Requirements:
 
-- configure the matching wallet and RPC for the selected family via `walletId` or the single-wallet fallback
-- for EVM, `from`, `LOCAL_SIGNER_EVM_WALLET_<walletId>_PRIVATE_KEY`, `LOCAL_SIGNER_EVM_PRIVATE_KEY_<chainSymbol>`, `LOCAL_SIGNER_EVM_PRIVATE_KEY_<chainId>`, or the default `LOCAL_SIGNER_EVM_PRIVATE_KEY` still work
-- the same `chainFamily`-specific payload shape applies to all supported families
+- configure a wallet and RPC for the family; pass `walletId` when more than one wallet can match
+- for EVM, a per-chain key (`LOCAL_SIGNER_EVM_PRIVATE_KEY_<CHAIN>` with `LOCAL_SIGNER_EVM_RPC_URL_<CHAIN>`) wins over the default pair for its chain; see the README "Wallet Selection" section

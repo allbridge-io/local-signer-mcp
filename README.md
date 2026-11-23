@@ -5,7 +5,7 @@
 It signs fully formed unsigned transactions for supported chain families and can optionally submit the signed payload. It does not plan bridge routes, quote transfers, or encode Allbridge protocol business logic.
 
 - Repository: [github.com/allbridge-io/local-signer-mcp](https://github.com/allbridge-io/local-signer-mcp)
-- Docker image: [allbridge/local-signer-mcp](https://hub.docker.com/repository/docker/allbridge/local-signer-mcp/tags?name=latest)
+- npm: [`@allbridge/local-signer-mcp`](https://www.npmjs.com/package/@allbridge/local-signer-mcp) (`npx -y @allbridge/local-signer-mcp@0.2.0`)
 - End-to-end usage guide: [`docs/usage.md`](./docs/usage.md)
 - Pairs with: [`allbridge-mcp`](https://github.com/allbridge-io/allbridge-mcp)
 
@@ -46,7 +46,7 @@ Those responsibilities belong to [`allbridge-mcp`](https://github.com/allbridge-
 ## Requirements
 
 - Node.js 22.12+
-- `pnpm`
+- `pnpm`, only to build from source (`npx` needs Node alone)
 - One or more private keys and RPC URLs configured through environment variables
 - Optional: Docker, if you prefer a containerized local process
 
@@ -103,12 +103,15 @@ Common variables:
 | Variable | Purpose |
 |----------|---------|
 | `LOCAL_SIGNER_TRANSPORT` | `stdio` or `streamable-http`; defaults to `stdio` |
-| `LOCAL_SIGNER_HOST` | HTTP bind host when using `streamable-http` |
-| `LOCAL_SIGNER_PORT` | HTTP bind port when using `streamable-http` |
-| `LOCAL_SIGNER_TLS_CERT_PATH` | Optional TLS certificate path for HTTPS mode |
+| `LOCAL_SIGNER_HOST` | HTTP bind host when using `streamable-http`; defaults to `127.0.0.1` |
+| `LOCAL_SIGNER_PORT` | HTTP bind port when using `streamable-http`; defaults to `3333` (`PORT` is a fallback) |
+| `LOCAL_SIGNER_TLS_CERT_PATH` | Optional TLS certificate path for HTTPS mode (set together with the key) |
 | `LOCAL_SIGNER_TLS_KEY_PATH` | Optional TLS private key path for HTTPS mode |
-| `LOCAL_SIGNER_EVM_PRIVATE_KEY` | Default EVM private key |
-| `LOCAL_SIGNER_EVM_RPC_URL` | Default EVM JSON-RPC URL |
+| `LOCAL_SIGNER_TLS_PASSPHRASE` | Optional passphrase of the TLS private key |
+| `LOCAL_SIGNER_EVM_PRIVATE_KEY_<CHAIN>` | EVM private key for one chain (see [Wallet Selection](#wallet-selection)) |
+| `LOCAL_SIGNER_EVM_RPC_URL_<CHAIN>` | EVM JSON-RPC URL for that chain; required with the key |
+| `LOCAL_SIGNER_EVM_PRIVATE_KEY` | Default EVM private key, for chains without their own key |
+| `LOCAL_SIGNER_EVM_RPC_URL` | Default EVM JSON-RPC URL, used only with the default key |
 | `LOCAL_SIGNER_SOL_PRIVATE_KEY` | Default Solana private key encoded as base58 |
 | `LOCAL_SIGNER_SOL_RPC_URL` | Default Solana RPC URL |
 | `LOCAL_SIGNER_TRX_PRIVATE_KEY` | Default Tron private key |
@@ -119,32 +122,34 @@ Common variables:
 | `LOCAL_SIGNER_SRB_RPC_URL` | Default Soroban RPC URL |
 | `LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE` | Soroban / Stellar network passphrase |
 
-For multiple wallets, use wallet slots:
+For several wallets on one family, use wallet slots. The slot id becomes the `walletId`; write it, like the `<CHAIN>` suffixes, in upper case:
 
 ```env
-LOCAL_SIGNER_EVM_WALLET_main_PRIVATE_KEY=<private-key>
-LOCAL_SIGNER_EVM_WALLET_main_RPC_URL=<rpc-url>
-LOCAL_SIGNER_EVM_WALLET_main_CHAIN_ID=1
-LOCAL_SIGNER_EVM_WALLET_main_CHAIN_SYMBOL=ETH
+LOCAL_SIGNER_EVM_WALLET_MAIN_PRIVATE_KEY=<private-key>
+LOCAL_SIGNER_EVM_WALLET_MAIN_RPC_URL=<rpc-url>
+LOCAL_SIGNER_EVM_WALLET_MAIN_CHAIN_ID=1
+LOCAL_SIGNER_EVM_WALLET_MAIN_CHAIN_SYMBOL=ETH
 ```
 
-Each non-EVM family follows the same slot shape:
+Non-EVM slots take a private key and an RPC URL, both required (Stellar also accepts `_NETWORK_PASSPHRASE`, falling back to `LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE`):
 
 ```env
-LOCAL_SIGNER_SOL_WALLET_main_PRIVATE_KEY=<private-key>
-LOCAL_SIGNER_SOL_WALLET_main_RPC_URL=<rpc-url>
+LOCAL_SIGNER_SOL_WALLET_MAIN_PRIVATE_KEY=<private-key>
+LOCAL_SIGNER_SOL_WALLET_MAIN_RPC_URL=<rpc-url>
 ```
 
-Do not commit `.env` files or private keys.
+Wallet ids of the default keys: `DEFAULT` (EVM), `SOLANA_DEFAULT`, `TRX_DEFAULT`, `STX_DEFAULT`, `SRB_DEFAULT`; a per-chain EVM key has the chain as its id (`ARB`). `get_accounts` lists them all.
+
+`.env` is read from the working directory of the process, which for `npx` or a client launch is the client's directory, not the package's: pass the variables through the client `env` block instead. Do not commit `.env` files or private keys.
 
 ## Transport Modes
 
 | Mode | Best for | Notes |
 |------|----------|-------|
 | `stdio` | Local MCP clients | No URL, no TLS, no network exposure |
-| `streamable-http` | Remote MCP connectors or trusted proxy setups | Use TLS or a trusted edge if a client requires `https://` |
+| `streamable-http` | Clients on this machine that can only connect by URL | Use TLS if a client requires `https://` |
 
-HTTP mode is unauthenticated. Bind it to `127.0.0.1` unless you intentionally expose it through a trusted tunnel or reverse proxy.
+HTTP mode has no authentication: anyone who can reach the port can sign and broadcast with your keys. Keep the default `127.0.0.1` bind and never expose it to a network or a remote connector. On a loopback bind the server also rejects requests whose `Host` header is not a loopback name, which blocks DNS rebinding from web pages.
 
 ## Tools
 
@@ -154,22 +159,27 @@ HTTP mode is unauthenticated. Bind it to `127.0.0.1` unless you intentionally ex
 - `broadcast_transaction`
 - `sign_and_broadcast_transaction`
 
-Each tool returns structured output so agents can recover from missing wallet configuration, unsupported chain families, invalid payloads, or broadcast failures without guessing.
+Successful calls return `structuredContent`. Failures return a tool error whose message names the problem; when no wallet matches, it lists the configured wallets.
+
+`broadcast_transaction` and `sign_and_broadcast_transaction` wait for the EVM receipt and the Solana confirmation. Tron, Stacks and Stellar return right after the node accepts the transaction, so check confirmation another way (for a transfer, `allbridge-mcp` `get_transfer_status`) before a step that depends on it.
 
 ## Wallet Selection
 
-When more than one wallet exists for a family, pass `walletId` explicitly.
+EVM wallets come from three sources:
 
-For EVM, the signer resolves credentials in this order:
+- the default pair `LOCAL_SIGNER_EVM_PRIVATE_KEY` + `LOCAL_SIGNER_EVM_RPC_URL` (walletId `DEFAULT`, serves every chain);
+- per-chain pairs `LOCAL_SIGNER_EVM_PRIVATE_KEY_<CHAIN>` + `LOCAL_SIGNER_EVM_RPC_URL_<CHAIN>`. Both are required, and a per-chain key never uses the default RPC. `<CHAIN>` is an upper-case Allbridge chain symbol (`ETH`, `ARB`, `BAS`) or a numeric chain id, and becomes the walletId;
+- slots `LOCAL_SIGNER_EVM_WALLET_<ID>_PRIVATE_KEY` / `_RPC_URL`, with optional `_CHAIN_ID` / `_CHAIN_SYMBOL`.
 
-1. `walletId` on the transaction, if provided
-2. `from` on the transaction, if provided
-3. `LOCAL_SIGNER_EVM_WALLET_<walletId>_PRIVATE_KEY` / `LOCAL_SIGNER_EVM_WALLET_<walletId>_RPC_URL`
-4. `LOCAL_SIGNER_EVM_PRIVATE_KEY_<chainSymbol>` / `LOCAL_SIGNER_EVM_RPC_URL_<chainSymbol>`
-5. `LOCAL_SIGNER_EVM_PRIVATE_KEY_<chainId>` / `LOCAL_SIGNER_EVM_RPC_URL_<chainId>`
-6. `LOCAL_SIGNER_EVM_PRIVATE_KEY` / `LOCAL_SIGNER_EVM_RPC_URL`
+For each transaction the signer:
 
-If the signer cannot choose a single wallet deterministically, it fails instead of guessing.
+1. uses the wallet named by `walletId`, if given (it must still match the chain and `from`);
+2. otherwise keeps the wallets whose chain matches the transaction (`chainId`, `chainSymbol`); a wallet without a chain matches every chain;
+3. narrows them by `from`, if given;
+4. prefers a wallet configured for the transaction's chain over one without a chain, so a per-chain key wins over the default pair;
+5. fails unless exactly one wallet remains, instead of guessing.
+
+Send `chainSymbol` with EVM transactions (`allbridge-mcp` jobs do). A symbol-scoped wallet such as `ARB` cannot be told apart from other chains by a bare `chainId`, so a transaction without `chainSymbol` may match it or end up ambiguous. When several wallets serve the same chain, pass `walletId`.
 
 ## Pairing With Allbridge MCP
 
@@ -203,11 +213,10 @@ docker run -i --rm \
   local-signer-mcp
 ```
 
-Or pull the published image: `allbridge/local-signer-mcp:latest`.
 
 ## Releasing
 
-CI (`.github/workflows/ci.yml`) runs lint, tests and the build on every pull request and push. On a push to `master` it publishes `@allbridge/local-signer-mcp` to npm when the `version` in `package.json` is not on npm yet, then tags `v<version>` and creates a GitHub release.
+CI (`.github/workflows/ci.yml`) runs lint, tests and the build on every pull request and on every push to `master`. On a push to `master` it publishes `@allbridge/local-signer-mcp` to npm when the `version` in `package.json` is not on npm yet, then tags `v<version>` and creates a GitHub release.
 
 To release, bump `version` in the pull request ([semver](https://semver.org): while on `0.x`, a patch for fixes and a minor for features or breaking changes). Merging a pull request without a version bump publishes nothing.
 
