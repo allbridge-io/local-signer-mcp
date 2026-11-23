@@ -1,12 +1,23 @@
 # Claude Code Example
 
-Use the local stdio transport when Claude Code runs on the same machine as the signer.
+Use the local stdio transport: Claude Code launches the signer on the same machine. Give it a key and an RPC per EVM chain you send from.
+
+Published package:
 
 ```bash
 claude mcp add local-signer \
-  --env LOCAL_SIGNER_EVM_PRIVATE_KEY=0xyourprivatekey \
-  --env LOCAL_SIGNER_EVM_RPC_URL=https://your-rpc.example \
+  --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=0xyourprivatekey \
+  --env LOCAL_SIGNER_EVM_RPC_URL_ARB=https://your-arbitrum-rpc.example \
+  -- npx -y @allbridge/local-signer-mcp@1.0.0
+```
+
+Local checkout (after `pnpm build`):
+
+```bash
+claude mcp add local-signer \
+  --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=0xyourprivatekey \
+  --env LOCAL_SIGNER_EVM_RPC_URL_ARB=https://your-arbitrum-rpc.example \
   -- /full/path/to/node /absolute/path/to/local-signer-mcp/dist/index.js
 ```
 
-If you need a remote connector URL instead, start the signer in `streamable-http` mode and add TLS as described in the main README.
+Do not register the signer as a remote connector: its HTTP mode has no authentication (see [`../docs/usage.md`](../docs/usage.md#http-transport)).

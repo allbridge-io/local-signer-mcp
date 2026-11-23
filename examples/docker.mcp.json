@@ -8,9 +8,7 @@
         "--rm",
         "--env-file",
         "/absolute/path/to/local-signer.env",
-        "allbridge/local-signer-mcp:latest",
-        "node",
-        "dist/index.js"
+        "local-signer-mcp"
       ],
       "env": {}
     }

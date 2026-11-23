@@ -1,14 +1,16 @@
+#!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 import { registerLocalSignerTools } from './tools.js';
 import { config } from './config.js';
 import { createLocalSignerSession, startStreamableHttpServer } from './http-server.js';
+import { PACKAGE_VERSION } from './version.js';
 
 function createServer(): McpServer {
   const server = new McpServer({
     name: 'local-signer-mcp',
-    version: '0.1.0'
+    version: PACKAGE_VERSION
   });
 
   registerLocalSignerTools(server);

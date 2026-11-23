@@ -141,6 +141,22 @@ describe('evm signer wallet registry', () => {
     })).toBeNull();
   });
 
+  test('prefers a per-chain wallet over the default wallet for its chain', () => {
+    const previousEnv = setEnv({
+      LOCAL_SIGNER_EVM_PRIVATE_KEY_ETH: '0x5555555555555555555555555555555555555555555555555555555555555555',
+      LOCAL_SIGNER_EVM_RPC_URL_ETH: 'https://eth.example',
+    });
+    try {
+      expect(moduleUnderTest.selectEvmWalletContext({ chainId: 1, chainSymbol: 'ETH' })?.walletId).toBe('ETH');
+      // The default wallet still serves chains without a per-chain key.
+      expect(moduleUnderTest.selectEvmWalletContext({ chainId: 8453, chainSymbol: 'BAS' })?.walletId).toBe('DEFAULT');
+      // A bare chainId does not match a symbol-scoped wallet, so it stays ambiguous.
+      expect(moduleUnderTest.selectEvmWalletContext({ chainId: 1 })).toBeNull();
+    } finally {
+      restoreEnv(previousEnv);
+    }
+  });
+
   test('skips malformed EVM wallets from the registry', () => {
     const previousEnv = setEnv({
       LOCAL_SIGNER_EVM_WALLET_BROKEN_PRIVATE_KEY: 'bad-key',

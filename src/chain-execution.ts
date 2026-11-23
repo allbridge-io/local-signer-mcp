@@ -1,11 +1,7 @@
 import { BytesReader, TransactionSigner, broadcastTransaction, createSingleSigSpendingCondition, deserializeTransaction, fetchNonce, privateKeyToPublic } from '@stacks/transactions';
 import { STACKS_MAINNET, STACKS_TESTNET, type StacksNetwork } from '@stacks/network';
 import { getAddressFromPublicKey } from '@stacks/transactions';
-import { Connection, Keypair as SolanaKeypair, VersionedTransaction } from '@solana/web3.js';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { SuiClient } from '@mysten/sui/client';
-import { Transaction as SuiTransaction } from '@mysten/sui/transactions';
-import algosdk from 'algosdk';
+import { Connection, Keypair as SolanaKeypair, SystemProgram, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { Keypair as StellarKeypair, TransactionBuilder, rpc as SorobanRpc, type Transaction as StellarTransaction } from '@stellar/stellar-sdk';
 import { TronWeb } from 'tronweb';
@@ -150,31 +146,6 @@ function createTronWalletContext(walletId: string, privateKey: string | null | u
   }
 }
 
-function createAlgorandWalletContext(walletId: string, privateKey: string | null | undefined, rpcUrl: string | null | undefined): LocalWalletContext | null {
-  if (!privateKey || !rpcUrl) {
-    return null;
-  }
-
-  try {
-    const secretKey = Buffer.from(normalizeHex(privateKey), 'hex');
-    const mnemonic = algosdk.secretKeyToMnemonic(secretKey);
-    const signer = algosdk.mnemonicToSecretKey(mnemonic);
-    const address = signer.addr.toString();
-    if (!address) {
-      return null;
-    }
-
-    return {
-      walletId,
-      privateKey,
-      rpcUrl,
-      address,
-    };
-  } catch {
-    return null;
-  }
-}
-
 function createStacksWalletContext(walletId: string, privateKey: string | null | undefined, rpcUrl: string | null | undefined): LocalWalletContext | null {
   if (!privateKey || !rpcUrl) {
     return null;
@@ -223,29 +194,6 @@ function createSorobanWalletContext(
       privateKey,
       rpcUrl,
       networkPassphrase,
-      address,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function createSuiWalletContext(walletId: string, privateKey: string | null | undefined, rpcUrl: string | null | undefined): LocalWalletContext | null {
-  if (!privateKey || !rpcUrl) {
-    return null;
-  }
-
-  try {
-    const keypair = Ed25519Keypair.fromSecretKey(privateKey);
-    const address = keypair.toSuiAddress();
-    if (!address) {
-      return null;
-    }
-
-    return {
-      walletId,
-      privateKey,
-      rpcUrl,
       address,
     };
   } catch {
@@ -302,16 +250,6 @@ function collectTronWallets(): LocalWalletContext[] {
   );
 }
 
-function collectAlgorandWallets(): LocalWalletContext[] {
-  return collectWalletContexts(
-    'ALG_DEFAULT',
-    config.LOCAL_SIGNER_ALG_PRIVATE_KEY,
-    config.LOCAL_SIGNER_ALG_RPC_URL,
-    'LOCAL_SIGNER_ALG_WALLET_',
-    createAlgorandWalletContext,
-  );
-}
-
 function collectStacksWallets(): LocalWalletContext[] {
   return collectWalletContexts(
     'STX_DEFAULT',
@@ -348,16 +286,6 @@ function collectSorobanWallets(): SorobanWalletContext[] {
   return sortWalletContexts(wallets);
 }
 
-function collectSuiWallets(): LocalWalletContext[] {
-  return collectWalletContexts(
-    'SUI_DEFAULT',
-    config.LOCAL_SIGNER_SUI_PRIVATE_KEY,
-    config.LOCAL_SIGNER_SUI_RPC_URL,
-    'LOCAL_SIGNER_SUI_WALLET_',
-    createSuiWalletContext,
-  );
-}
-
 function getEvmWallets(): ReturnType<typeof getConfiguredEvmWallets> {
   return getConfiguredEvmWallets();
 }
@@ -370,20 +298,12 @@ function getTronWalletContext(walletId?: string | null): LocalWalletContext {
   return resolveConfiguredWallet(collectTronWallets(), 'Tron', walletId);
 }
 
-function getAlgorandWalletContext(walletId?: string | null): LocalWalletContext {
-  return resolveConfiguredWallet(collectAlgorandWallets(), 'Algorand', walletId);
-}
-
 function getStacksWalletContext(walletId?: string | null): LocalWalletContext {
   return resolveConfiguredWallet(collectStacksWallets(), 'Stacks', walletId);
 }
 
 function getSorobanWalletContext(walletId?: string | null): SorobanWalletContext {
   return resolveConfiguredWallet(collectSorobanWallets(), 'Soroban', walletId);
-}
-
-function getSuiWalletContext(walletId?: string | null): LocalWalletContext {
-  return resolveConfiguredWallet(collectSuiWallets(), 'Sui', walletId);
 }
 
 function getWalletCapabilityEntries(): WalletCapability[] {
@@ -427,18 +347,6 @@ function getWalletCapabilityEntries(): WalletCapability[] {
     });
   }
 
-  for (const wallet of collectAlgorandWallets()) {
-    wallets.push({
-      walletType: 'local_private_key',
-      chainFamily: 'ALG',
-      walletId: wallet.walletId,
-      supportsSign: true,
-      supportsBroadcast: true,
-      supportsSignAndBroadcast: true,
-      defaultAddress: wallet.address,
-    });
-  }
-
   for (const wallet of collectStacksWallets()) {
     wallets.push({
       walletType: 'local_private_key',
@@ -455,18 +363,6 @@ function getWalletCapabilityEntries(): WalletCapability[] {
     wallets.push({
       walletType: 'local_private_key',
       chainFamily: 'SRB',
-      walletId: wallet.walletId,
-      supportsSign: true,
-      supportsBroadcast: true,
-      supportsSignAndBroadcast: true,
-      defaultAddress: wallet.address,
-    });
-  }
-
-  for (const wallet of collectSuiWallets()) {
-    wallets.push({
-      walletType: 'local_private_key',
-      chainFamily: 'SUI',
       walletId: wallet.walletId,
       supportsSign: true,
       supportsBroadcast: true,
@@ -593,22 +489,58 @@ function getTronWebForContext(context: LocalWalletContext): TronWeb {
   return new TronWeb(context.rpcUrl, context.rpcUrl, context.rpcUrl, context.privateKey);
 }
 
-function getAlgorandSignerForContext(context: LocalWalletContext) {
-  const secretKey = Buffer.from(normalizeHex(context.privateKey), 'hex');
-  const mnemonic = algosdk.secretKeyToMnemonic(secretKey);
-  return algosdk.mnemonicToSecretKey(mnemonic);
-}
-
-function getAlgodClientForContext(context: LocalWalletContext) {
-  return new algosdk.Algodv2('', context.rpcUrl);
-}
-
 function getSorobanClientForContext(context: SorobanWalletContext) {
   return new SorobanRpc.Server(context.rpcUrl);
 }
 
-function getSuiClientForContext(context: LocalWalletContext): SuiClient {
-  return new SuiClient({ url: context.rpcUrl });
+const SOLANA_ADVANCE_NONCE_INSTRUCTION = 4;
+
+function isUnsignedSolanaTransaction(transaction: VersionedTransaction): boolean {
+  return transaction.signatures.every((signature) => signature.every((byte) => byte === 0));
+}
+
+function usesDurableNonce(transaction: VersionedTransaction): boolean {
+  const [first] = transaction.message.compiledInstructions;
+  if (!first) {
+    return false;
+  }
+  const programId = transaction.message.staticAccountKeys[first.programIdIndex];
+  return Boolean(programId?.equals(SystemProgram.programId))
+    && Buffer.from(first.data).readUInt32LE(0) === SOLANA_ADVANCE_NONCE_INSTRUCTION;
+}
+
+/**
+ * A Solana blockhash expires about a minute after the transaction is built. When nobody has signed
+ * the transaction yet and it does not use a durable nonce, replace the blockhash with a fresh one so
+ * a transaction built earlier (for example in an execution job) still lands.
+ */
+async function refreshSolanaBlockhash(transaction: VersionedTransaction, rpcUrl: string): Promise<void> {
+  if (!isUnsignedSolanaTransaction(transaction) || usesDurableNonce(transaction)) {
+    return;
+  }
+  const { blockhash } = await new Connection(rpcUrl, 'confirmed').getLatestBlockhash();
+  transaction.message.recentBlockhash = blockhash;
+}
+
+const TRON_MIN_REMAINING_MS = 120_000;
+
+/**
+ * Tron transactions expire 60 seconds after they are built. Extend an unsigned transaction that has
+ * less than two minutes left, so a transaction built earlier can still be signed and broadcast.
+ */
+async function extendTronExpiration(tronWeb: TronWeb, rawTransaction: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const signature = rawTransaction.signature;
+  const rawData = rawTransaction.raw_data as { expiration?: number } | undefined;
+  if ((Array.isArray(signature) && signature.length > 0) || typeof rawData?.expiration !== 'number') {
+    return rawTransaction;
+  }
+
+  const shortfallMs = Date.now() + TRON_MIN_REMAINING_MS - rawData.expiration;
+  if (shortfallMs <= 0) {
+    return rawTransaction;
+  }
+
+  return await tronWeb.transactionBuilder.extendExpiration(rawTransaction as never, Math.ceil(shortfallMs / 1000)) as unknown as Record<string, unknown>;
 }
 
 function buildEvmResult(result: Awaited<ReturnType<typeof signEvmTransaction>>): SignResult {
@@ -636,6 +568,7 @@ export async function signTransactionByFamily(input: UnsignedTransaction): Promi
       const context = getSolanaWalletContext(input.walletId);
       const keypair = SolanaKeypair.fromSecretKey(bs58.decode(context.privateKey));
       const transaction = VersionedTransaction.deserialize(Buffer.from(normalizeHex(input.serializedTransactionHex), 'hex'));
+      await refreshSolanaBlockhash(transaction, context.rpcUrl);
       transaction.sign([keypair]);
 
       return {
@@ -652,7 +585,8 @@ export async function signTransactionByFamily(input: UnsignedTransaction): Promi
     case 'TRX': {
       const context = getTronWalletContext(input.walletId);
       const tronWeb = getTronWebForContext(context);
-      const signedTransaction = await tronWeb.trx.sign(input.rawTransaction as never);
+      const rawTransaction = await extendTronExpiration(tronWeb, input.rawTransaction);
+      const signedTransaction = await tronWeb.trx.sign(rawTransaction as never);
       const signedTransactionResult = signedTransaction as string | { signature?: unknown };
       if (typeof signedTransactionResult === 'string' || !signedTransactionResult.signature) {
         throw new Error('Transaction was not signed properly.');
@@ -666,30 +600,6 @@ export async function signTransactionByFamily(input: UnsignedTransaction): Promi
           chainFamily: 'TRX',
           walletId: context.walletId,
           signedTransaction: signedTransaction as Record<string, unknown>,
-        },
-      };
-    }
-    case 'ALG': {
-      const context = getAlgorandWalletContext(input.walletId);
-      const signer = getAlgorandSignerForContext(context);
-      const txns = input.serializedTransactionsHex.map((hex) =>
-        algosdk.decodeUnsignedTransaction(Buffer.from(normalizeHex(hex), 'hex')),
-      );
-      const alreadyGrouped = txns.every((txn) => txn.group && txn.group.length > 0);
-      if (!alreadyGrouped) {
-        algosdk.assignGroupID(txns);
-      }
-
-      const signedTransactionsBase64 = txns.map((txn) => Buffer.from(txn.signTxn(signer.sk)).toString('base64'));
-
-      return {
-        chainFamily: 'ALG',
-        walletId: context.walletId,
-        walletAddress: signer.addr.toString(),
-        signedTransaction: {
-          chainFamily: 'ALG',
-          walletId: context.walletId,
-          signedTransactionsBase64,
         },
       };
     }
@@ -748,26 +658,6 @@ export async function signTransactionByFamily(input: UnsignedTransaction): Promi
         },
       };
     }
-    case 'SUI': {
-      const context = getSuiWalletContext(input.walletId);
-      const keypair = Ed25519Keypair.fromSecretKey(context.privateKey);
-      const transaction = SuiTransaction.from(input.serializedTransaction as never);
-      const signed = await transaction.sign({ signer: keypair });
-
-      return {
-        chainFamily: 'SUI',
-        walletId: context.walletId,
-        walletAddress: keypair.toSuiAddress(),
-        signedTransaction: {
-          chainFamily: 'SUI',
-          walletId: context.walletId,
-          signedTransaction: {
-            bytesBase64: signed.bytes,
-            signature: signed.signature,
-          },
-        },
-      };
-    }
     default:
       throw new Error(`Unsupported chain family ${(input as { chainFamily: string }).chainFamily}.`);
   }
@@ -803,27 +693,17 @@ async function broadcastTronSignedTransaction(
   const context = getTronWalletContext(walletId);
   const tronWeb = getTronWebForContext(context);
   const response = await tronWeb.trx.sendRawTransaction(signedTransaction as never);
-  const txHash = (response as { txid?: string; txID?: string; result?: boolean }).txid
-    ?? (response as { txID?: string }).txID
-    ?? '';
+  const result = response as { txid?: string; txID?: string; result?: boolean; code?: string; message?: string };
+  if (result.result === false) {
+    const message = result.message ? Buffer.from(result.message, 'hex').toString('utf8') : '';
+    throw new Error(`Tron node rejected the transaction: ${result.code ?? 'UNKNOWN'} ${message}`.trim());
+  }
+  const txHash = result.txid ?? result.txID ?? '';
 
   return {
     chainFamily: 'TRX',
     txHash,
     receipt: { response },
-  };
-}
-
-async function broadcastAlgorandSignedTransaction(signedTransactionsBase64: string[], walletId?: string | null): Promise<BroadcastResult> {
-  const context = getAlgorandWalletContext(walletId);
-  const algod = getAlgodClientForContext(context);
-  const signedTransactions = signedTransactionsBase64.map((value) => Buffer.from(value, 'base64'));
-  const { txid } = await algod.sendRawTransaction(signedTransactions).do();
-
-  return {
-    chainFamily: 'ALG',
-    txHash: txid,
-    receipt: null,
   };
 }
 
@@ -833,6 +713,11 @@ async function broadcastStacksSignedTransaction(signedTransactionHex: string, wa
   validateStacksAddressForNetwork(context.address, context, resolvedNetwork);
   const tx = deserializeTransaction(new BytesReader(Buffer.from(normalizeHex(signedTransactionHex), 'hex')));
   const response = await broadcastTransaction({ transaction: tx, network: resolvedNetwork.network });
+  // The node answers a rejection with { error, reason } instead of an HTTP error.
+  if ('error' in response) {
+    const reason = 'reason' in response ? ` (${String(response.reason)})` : '';
+    throw new Error(`Stacks node rejected the transaction: ${String(response.error)}${reason}`);
+  }
 
   return {
     chainFamily: 'STX',
@@ -846,34 +731,14 @@ async function broadcastSorobanSignedTransaction(signedTransactionXdr: string, w
   const server = getSorobanClientForContext(context);
   const transaction = TransactionBuilder.fromXDR(signedTransactionXdr, context.networkPassphrase) as StellarTransaction;
   const sent = await server.sendTransaction(transaction);
+  if (sent.status === 'ERROR' || sent.status === 'TRY_AGAIN_LATER') {
+    throw new Error(`Stellar rejected the transaction (${sent.status}): ${JSON.stringify(sent.errorResult ?? sent)}`);
+  }
 
   return {
     chainFamily: 'SRB',
     txHash: sent.hash,
     receipt: sent as unknown as Record<string, unknown>,
-  };
-}
-
-async function broadcastSuiSignedTransaction(signedTransaction: {
-  bytesBase64: string;
-  signature: string;
-}, walletId?: string | null): Promise<BroadcastResult> {
-  const context = getSuiWalletContext(walletId);
-  const client = getSuiClientForContext(context);
-  const result = await client.executeTransactionBlock({
-    transactionBlock: Buffer.from(signedTransaction.bytesBase64, 'base64'),
-    signature: signedTransaction.signature,
-    options: {
-      showEffects: true,
-      showEvents: true,
-      showObjectChanges: true,
-    },
-  });
-
-  return {
-    chainFamily: 'SUI',
-    txHash: result.digest,
-    receipt: result as unknown as Record<string, unknown>,
   };
 }
 
@@ -885,14 +750,10 @@ export async function broadcastSignedTransactionByFamily(signedTransaction: Sign
       return broadcastSolanaSignedTransaction(signedTransaction.signedTransactionHex, signedTransaction.walletId);
     case 'TRX':
       return broadcastTronSignedTransaction(signedTransaction.signedTransaction, signedTransaction.walletId);
-    case 'ALG':
-      return broadcastAlgorandSignedTransaction(signedTransaction.signedTransactionsBase64, signedTransaction.walletId);
     case 'STX':
       return broadcastStacksSignedTransaction(signedTransaction.signedTransactionHex, signedTransaction.walletId);
     case 'SRB':
       return broadcastSorobanSignedTransaction(signedTransaction.signedTransactionXdr, signedTransaction.walletId);
-    case 'SUI':
-      return broadcastSuiSignedTransaction(signedTransaction.signedTransaction, signedTransaction.walletId);
     default:
       throw new Error(`Unsupported chain family ${(signedTransaction as { chainFamily: string }).chainFamily}.`);
   }

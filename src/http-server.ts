@@ -5,6 +5,8 @@ import { createServer as createHttpsServer } from 'node:https';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
+import { PACKAGE_VERSION } from './version.js';
+
 export interface ManagedMcpSession {
   readonly sessionId: string | undefined;
   handleRequest(req: IncomingMessage, res: ServerResponse, parsedBody?: unknown): Promise<void>;
@@ -80,6 +82,24 @@ export async function createLocalSignerSession(server: McpServer): Promise<Manag
   };
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+export function isLoopbackHost(hostname: string | undefined): boolean {
+  return hostname !== undefined && LOOPBACK_HOSTS.has(hostname.toLowerCase());
+}
+
+/** The host name of a Host header without the port, unwrapping IPv6 brackets. */
+export function hostnameOf(hostHeader: string | undefined): string | undefined {
+  if (!hostHeader) {
+    return undefined;
+  }
+  const bracketed = /^\[([^\]]+)\](?::\d+)?$/.exec(hostHeader);
+  if (bracketed) {
+    return bracketed[1];
+  }
+  return hostHeader.replace(/:\d+$/, '');
+}
+
 export async function startStreamableHttpServer(
   createSession: CreateMcpSession,
   host: string,
@@ -88,8 +108,19 @@ export async function startStreamableHttpServer(
   tlsOptions?: StreamableHttpTlsOptions,
 ): Promise<HttpServer> {
   const requestListener = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    // DNS rebinding: a web page can resolve its own domain to 127.0.0.1 and reach this port, but its
+    // requests still carry that domain in Host. On a loopback bind, accept loopback host names only.
+    if (isLoopbackHost(host) && !isLoopbackHost(hostnameOf(req.headers.host))) {
+      writeJson(res, 403, {
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Forbidden: the Host header must be a loopback address.' },
+        id: null,
+      });
+      return;
+    }
+
     if (req.url === '/health') {
-      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: '0.1.0' });
+      writeJson(res, 200, { status: 'ok', server: 'local-signer-mcp', version: PACKAGE_VERSION });
       return;
     }
 

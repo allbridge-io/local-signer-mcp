@@ -261,6 +261,13 @@ function matchesChainSelector(context: EvmWalletContext, selector?: EvmWalletSel
   return true;
 }
 
+function isConfiguredForChain(context: EvmWalletContext, selector: EvmWalletSelector): boolean {
+  const byChainId = selector.chainId !== undefined && context.chainId === selector.chainId;
+  const byChainSymbol = Boolean(selector.chainSymbol && context.chainSymbol)
+    && normalizeScope(context.chainSymbol!) === normalizeScope(selector.chainSymbol!);
+  return byChainId || byChainSymbol;
+}
+
 function describeContext(context: EvmWalletContext): string {
   const parts = [
     `walletId=${context.walletId}`,
@@ -310,29 +317,25 @@ function selectContext(selector?: EvmWalletSelector): EvmWalletContext | null {
     return matched;
   }
 
-  const chainMatches = wallets.filter((context) => matchesChainSelector(context, selector));
+  let candidates = wallets.filter((context) => matchesChainSelector(context, selector));
 
   if (selector.from) {
     const from = normalizeAddress(selector.from);
-    const matchesByAddress = chainMatches.filter((context) => normalizeAddress(context.address) === from);
-    if (matchesByAddress.length === 1) {
-      return matchesByAddress[0] ?? null;
+    candidates = candidates.filter((context) => normalizeAddress(context.address) === from);
+  }
+
+  // A wallet configured for this chain (a per-chain key or a slot with a chain) wins over the
+  // default wallet, which carries no chain and matches every chain. It has to match on a field the
+  // transaction actually carries: an ARB-scoped wallet is no match for a bare chainId 1.
+  if (candidates.length > 1) {
+    const chainSpecific = candidates.filter((context) => isConfiguredForChain(context, selector));
+    if (chainSpecific.length > 0) {
+      candidates = chainSpecific;
     }
-
-    return null;
   }
 
-  if (chainMatches.length === 1) {
-    return chainMatches[0] ?? null;
-  }
-
-  if (chainMatches.length > 1) {
-    return null;
-  }
-
-  const genericMatches = wallets.filter((context) => context.chainId === undefined && context.chainSymbol === undefined);
-  if (genericMatches.length === 1) {
-    return genericMatches[0] ?? null;
+  if (candidates.length === 1) {
+    return candidates[0] ?? null;
   }
 
   return null;
