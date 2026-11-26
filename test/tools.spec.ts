@@ -120,6 +120,14 @@ describe('registerLocalSignerTools', () => {
     expect(evm.success).toBe(true);
   });
 
+  test('sign and broadcast accept Sui payloads', () => {
+    expect(server.parseInput('sign_transaction', { chainFamily: 'SUI', serializedTransaction: '{"version":2}' }).success).toBe(true);
+    expect(server.parseInput('broadcast_transaction', {
+      chainFamily: 'SUI',
+      signedTransaction: { bytesBase64: 'AAAA', signature: 'AQID' },
+    }).success).toBe(true);
+  });
+
   test('broadcast_transaction returns the broadcast result', async () => {
     dependencies.broadcastSignedTransactionByFamily.mockResolvedValue({
       chainFamily: 'SOLANA',

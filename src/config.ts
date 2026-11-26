@@ -91,4 +91,10 @@ export const config = {
   get LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE() {
     return normalizeString(process.env.LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE);
   },
+  get LOCAL_SIGNER_SUI_PRIVATE_KEY() {
+    return normalizeString(process.env.LOCAL_SIGNER_SUI_PRIVATE_KEY);
+  },
+  get LOCAL_SIGNER_SUI_RPC_URL() {
+    return normalizeString(process.env.LOCAL_SIGNER_SUI_RPC_URL);
+  },
 };

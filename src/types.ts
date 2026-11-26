@@ -1,4 +1,4 @@
-export type ChainFamily = 'EVM' | 'SOLANA' | 'TRX' | 'STX' | 'SRB';
+export type ChainFamily = 'EVM' | 'SOLANA' | 'TRX' | 'STX' | 'SRB' | 'SUI';
 
 export interface UnsignedEvmTransaction {
   chainFamily: 'EVM';
@@ -41,12 +41,20 @@ export interface UnsignedSorobanTransaction {
   serializedTransactionXdr: string;
 }
 
+/** A Sui `Transaction` serialized with `toJSON()` (built at signing time) or base64 transaction bytes. */
+export interface UnsignedSuiTransaction {
+  chainFamily: 'SUI';
+  walletId?: string;
+  serializedTransaction: string;
+}
+
 export type UnsignedTransaction =
   | UnsignedEvmTransaction
   | UnsignedSolanaTransaction
   | UnsignedTronTransaction
   | UnsignedStacksTransaction
-  | UnsignedSorobanTransaction;
+  | UnsignedSorobanTransaction
+  | UnsignedSuiTransaction;
 
 export interface SignedEvmTransaction {
   chainFamily: 'EVM';
@@ -80,12 +88,22 @@ export interface SignedSorobanTransaction {
   signedTransactionXdr: string;
 }
 
+export interface SignedSuiTransaction {
+  chainFamily: 'SUI';
+  walletId?: string;
+  signedTransaction: {
+    bytesBase64: string;
+    signature: string;
+  };
+}
+
 export type SignedTransaction =
   | SignedEvmTransaction
   | SignedSolanaTransaction
   | SignedTronTransaction
   | SignedStacksTransaction
-  | SignedSorobanTransaction;
+  | SignedSorobanTransaction
+  | SignedSuiTransaction;
 
 export interface WalletCapability {
   walletType: 'local_private_key';

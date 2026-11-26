@@ -5,7 +5,7 @@
 It signs fully formed unsigned transactions for supported chain families and can optionally submit the signed payload. It does not plan bridge routes, quote transfers, or encode Allbridge protocol business logic.
 
 - Repository: [github.com/allbridge-io/local-signer-mcp](https://github.com/allbridge-io/local-signer-mcp)
-- npm: [`@allbridge/local-signer-mcp`](https://www.npmjs.com/package/@allbridge/local-signer-mcp) (`npx -y @allbridge/local-signer-mcp@1.0.0`)
+- npm: [`@allbridge/local-signer-mcp`](https://www.npmjs.com/package/@allbridge/local-signer-mcp) (`npx -y @allbridge/local-signer-mcp@1.1.0`)
 - End-to-end usage guide: [`docs/usage.md`](./docs/usage.md)
 - Pairs with: [`allbridge-mcp`](https://github.com/allbridge-io/allbridge-mcp)
 
@@ -24,6 +24,7 @@ Supported chain families:
 - Tron
 - Stacks
 - Soroban / Stellar
+- Sui
 
 Transactions built by [`allbridge-mcp`](https://github.com/allbridge-io/allbridge-mcp) execution jobs are passed to the signer as is.
 
@@ -77,7 +78,7 @@ The package ships a `local-signer-mcp` binary. Pin an exact version: this proces
 claude mcp add local-signer \
   --env LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB=<private-key> \
   --env LOCAL_SIGNER_EVM_RPC_URL_ARB=<rpc-url> \
-  -- npx -y @allbridge/local-signer-mcp@1.0.0
+  -- npx -y @allbridge/local-signer-mcp@1.1.0
 ```
 
 ```json
@@ -85,7 +86,7 @@ claude mcp add local-signer \
   "mcpServers": {
     "local-signer": {
       "command": "npx",
-      "args": ["-y", "@allbridge/local-signer-mcp@1.0.0"],
+      "args": ["-y", "@allbridge/local-signer-mcp@1.1.0"],
       "env": { "LOCAL_SIGNER_EVM_PRIVATE_KEY_ARB": "<private-key>", "LOCAL_SIGNER_EVM_RPC_URL_ARB": "<rpc-url>" }
     }
   }
@@ -121,6 +122,8 @@ Common variables:
 | `LOCAL_SIGNER_SRB_PRIVATE_KEY` | Default Soroban / Stellar secret key |
 | `LOCAL_SIGNER_SRB_RPC_URL` | Default Soroban RPC URL |
 | `LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE` | Soroban / Stellar network passphrase |
+| `LOCAL_SIGNER_SUI_PRIVATE_KEY` | Default Sui Ed25519 key: a `suiprivkey1…` string or a 32-byte hex secret key |
+| `LOCAL_SIGNER_SUI_RPC_URL` | Default Sui full node: the gRPC-web base URL, such as `https://fullnode.mainnet.sui.io` (Sui nodes no longer serve JSON-RPC) |
 
 For several wallets on one family, use wallet slots. The slot id becomes the `walletId`; write it, like the `<CHAIN>` suffixes, in upper case:
 
@@ -138,7 +141,7 @@ LOCAL_SIGNER_SOL_WALLET_MAIN_PRIVATE_KEY=<private-key>
 LOCAL_SIGNER_SOL_WALLET_MAIN_RPC_URL=<rpc-url>
 ```
 
-Wallet ids of the default keys: `DEFAULT` (EVM), `SOLANA_DEFAULT`, `TRX_DEFAULT`, `STX_DEFAULT`, `SRB_DEFAULT`; a per-chain EVM key has the chain as its id (`ARB`). `get_accounts` lists them all.
+Wallet ids of the default keys: `DEFAULT` (EVM), `SOLANA_DEFAULT`, `TRX_DEFAULT`, `STX_DEFAULT`, `SRB_DEFAULT`, `SUI_DEFAULT`; a per-chain EVM key has the chain as its id (`ARB`). `get_accounts` lists them all.
 
 `.env` is read from the working directory of the process, which for `npx` or a client launch is the client's directory, not the package's: pass the variables through the client `env` block instead. Do not commit `.env` files or private keys.
 
@@ -161,7 +164,7 @@ HTTP mode has no authentication: anyone who can reach the port can sign and broa
 
 Successful calls return `structuredContent`. Failures return a tool error whose message names the problem; when no wallet matches, it lists the configured wallets.
 
-`broadcast_transaction` and `sign_and_broadcast_transaction` wait for the EVM receipt and the Solana confirmation. Tron, Stacks and Stellar return right after the node accepts the transaction, so check confirmation another way (for a transfer, `allbridge-mcp` `get_transfer_status`) before a step that depends on it.
+`broadcast_transaction` and `sign_and_broadcast_transaction` wait for the EVM receipt, the Solana confirmation and the Sui execution effects (a failed Sui transaction fails the call). Tron, Stacks and Stellar return right after the node accepts the transaction, so check confirmation another way (for a transfer, `allbridge-mcp` `get_transfer_status`) before a step that depends on it.
 
 ## Wallet Selection
 

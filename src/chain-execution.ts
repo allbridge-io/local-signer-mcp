@@ -5,6 +5,9 @@ import { Connection, Keypair as SolanaKeypair, SystemProgram, VersionedTransacti
 import bs58 from 'bs58';
 import { Keypair as StellarKeypair, TransactionBuilder, rpc as SorobanRpc, type Transaction as StellarTransaction } from '@stellar/stellar-sdk';
 import { TronWeb } from 'tronweb';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { Transaction as SuiTransaction } from '@mysten/sui/transactions';
 
 import { config } from './config.js';
 import type {
@@ -201,6 +204,36 @@ function createSorobanWalletContext(
   }
 }
 
+/** A Sui key is either a `suiprivkey1…` string or a 32-byte Ed25519 secret key in hex. */
+function suiKeypairFromPrivateKey(privateKey: string): Ed25519Keypair {
+  const value = privateKey.trim();
+  if (value.startsWith('suiprivkey')) {
+    return Ed25519Keypair.fromSecretKey(value);
+  }
+  const bytes = Buffer.from(normalizeHex(value), 'hex');
+  if (bytes.length !== 32) {
+    throw new Error('Expected a suiprivkey string or a 32-byte hex Ed25519 secret key.');
+  }
+  return Ed25519Keypair.fromSecretKey(bytes);
+}
+
+function createSuiWalletContext(walletId: string, privateKey: string | null | undefined, rpcUrl: string | null | undefined): LocalWalletContext | null {
+  if (!privateKey || !rpcUrl) {
+    return null;
+  }
+
+  try {
+    return {
+      walletId,
+      privateKey,
+      rpcUrl,
+      address: suiKeypairFromPrivateKey(privateKey).toSuiAddress(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function collectWalletContexts<T extends { walletId: string }>(
   defaultWalletId: string,
   defaultPrivateKey: string | null,
@@ -286,6 +319,16 @@ function collectSorobanWallets(): SorobanWalletContext[] {
   return sortWalletContexts(wallets);
 }
 
+function collectSuiWallets(): LocalWalletContext[] {
+  return collectWalletContexts(
+    'SUI_DEFAULT',
+    config.LOCAL_SIGNER_SUI_PRIVATE_KEY,
+    config.LOCAL_SIGNER_SUI_RPC_URL,
+    'LOCAL_SIGNER_SUI_WALLET_',
+    createSuiWalletContext,
+  );
+}
+
 function getEvmWallets(): ReturnType<typeof getConfiguredEvmWallets> {
   return getConfiguredEvmWallets();
 }
@@ -304,6 +347,18 @@ function getStacksWalletContext(walletId?: string | null): LocalWalletContext {
 
 function getSorobanWalletContext(walletId?: string | null): SorobanWalletContext {
   return resolveConfiguredWallet(collectSorobanWallets(), 'Soroban', walletId);
+}
+
+function getSuiWalletContext(walletId?: string | null): LocalWalletContext {
+  return resolveConfiguredWallet(collectSuiWallets(), 'Sui', walletId);
+}
+
+/** Sui full nodes serve gRPC-web only (JSON-RPC was shut down): the RPC URL is the node base URL. */
+function getSuiClientForContext(context: LocalWalletContext): SuiGrpcClient {
+  return new SuiGrpcClient({
+    network: context.rpcUrl.includes('testnet') ? 'testnet' : 'mainnet',
+    baseUrl: context.rpcUrl.replace(/\/+$/, ''),
+  });
 }
 
 function getWalletCapabilityEntries(): WalletCapability[] {
@@ -363,6 +418,18 @@ function getWalletCapabilityEntries(): WalletCapability[] {
     wallets.push({
       walletType: 'local_private_key',
       chainFamily: 'SRB',
+      walletId: wallet.walletId,
+      supportsSign: true,
+      supportsBroadcast: true,
+      supportsSignAndBroadcast: true,
+      defaultAddress: wallet.address,
+    });
+  }
+
+  for (const wallet of collectSuiWallets()) {
+    wallets.push({
+      walletType: 'local_private_key',
+      chainFamily: 'SUI',
       walletId: wallet.walletId,
       supportsSign: true,
       supportsBroadcast: true,
@@ -658,6 +725,27 @@ export async function signTransactionByFamily(input: UnsignedTransaction): Promi
         },
       };
     }
+    case 'SUI': {
+      const context = getSuiWalletContext(input.walletId);
+      const keypair = suiKeypairFromPrivateKey(context.privateKey);
+      const transaction = SuiTransaction.from(input.serializedTransaction);
+      // The transaction comes unbuilt: building it with the client resolves gas and coins against the chain.
+      const signed = await transaction.sign({ signer: keypair, client: getSuiClientForContext(context) });
+
+      return {
+        chainFamily: 'SUI',
+        walletId: context.walletId,
+        walletAddress: keypair.toSuiAddress(),
+        signedTransaction: {
+          chainFamily: 'SUI',
+          walletId: context.walletId,
+          signedTransaction: {
+            bytesBase64: signed.bytes,
+            signature: signed.signature,
+          },
+        },
+      };
+    }
     default:
       throw new Error(`Unsupported chain family ${(input as { chainFamily: string }).chainFamily}.`);
   }
@@ -742,6 +830,27 @@ async function broadcastSorobanSignedTransaction(signedTransactionXdr: string, w
   };
 }
 
+async function broadcastSuiSignedTransaction(
+  signedTransaction: { bytesBase64: string; signature: string },
+  walletId?: string | null,
+): Promise<BroadcastResult> {
+  const client = getSuiClientForContext(getSuiWalletContext(walletId));
+  const result = await client.executeTransaction({
+    transaction: Buffer.from(signedTransaction.bytesBase64, 'base64'),
+    signatures: [signedTransaction.signature],
+  });
+  const transaction = result.Transaction ?? result.FailedTransaction;
+  if (result.$kind === 'FailedTransaction') {
+    throw new Error(`Sui transaction ${transaction.digest} failed: ${JSON.stringify(transaction.status.error)}`);
+  }
+
+  return {
+    chainFamily: 'SUI',
+    txHash: transaction.digest,
+    receipt: { status: transaction.status, epoch: transaction.epoch },
+  };
+}
+
 export async function broadcastSignedTransactionByFamily(signedTransaction: SignedTransaction): Promise<BroadcastResult> {
   switch (signedTransaction.chainFamily) {
     case 'EVM':
@@ -754,6 +863,8 @@ export async function broadcastSignedTransactionByFamily(signedTransaction: Sign
       return broadcastStacksSignedTransaction(signedTransaction.signedTransactionHex, signedTransaction.walletId);
     case 'SRB':
       return broadcastSorobanSignedTransaction(signedTransaction.signedTransactionXdr, signedTransaction.walletId);
+    case 'SUI':
+      return broadcastSuiSignedTransaction(signedTransaction.signedTransaction, signedTransaction.walletId);
     default:
       throw new Error(`Unsupported chain family ${(signedTransaction as { chainFamily: string }).chainFamily}.`);
   }

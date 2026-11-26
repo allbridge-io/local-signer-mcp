@@ -52,7 +52,9 @@ EVM wallet choice (see the README "Wallet Selection" section for the sources):
 4. It prefers a wallet configured for the transaction's chain over one without a chain, so a per-chain key wins over the default pair.
 5. It fails unless exactly one wallet remains.
 
-For Solana, Tron, Stacks, and Soroban / Stellar, set `walletId` explicitly when more than one wallet is configured for that family.
+For Solana, Tron, Stacks, Soroban / Stellar and Sui, set `walletId` explicitly when more than one wallet is configured for that family.
+
+A Sui transaction comes as `serializedTransaction`: the `Transaction.toJSON()` output (what `allbridge-mcp` jobs carry) or base64 transaction bytes. The signer builds it against its RPC before signing, which sets the gas budget and payment and selects the coins, so the wallet needs SUI for gas.
 
 ### `broadcast_transaction`
 
@@ -64,8 +66,9 @@ Broadcasts an already signed transaction: pass the `signedTransaction` object fr
 | `TRX` | `signedTransaction` (signed transaction object) |
 | `SOLANA`, `STX` | `signedTransactionHex` |
 | `SRB` | `signedTransactionXdr` |
+| `SUI` | `signedTransaction`: `{ bytesBase64, signature }` |
 
-Returns `chainFamily`, `txHash` and `receipt` (`null` for Solana). EVM waits for the receipt and Solana for confirmation; Tron, Stacks and Stellar return once the node accepts the transaction, and a rejection by the node fails the call.
+Returns `chainFamily`, `txHash` and `receipt` (`null` for Solana). EVM waits for the receipt, Solana for confirmation and Sui for the execution effects (a failed Sui transaction fails the call); Tron, Stacks and Stellar return once the node accepts the transaction, and a rejection by the node fails the call.
 
 ### `sign_and_broadcast_transaction`
 
@@ -94,7 +97,7 @@ EVM wallets:
 - `LOCAL_SIGNER_EVM_PRIVATE_KEY_<CHAIN>` / `LOCAL_SIGNER_EVM_RPC_URL_<CHAIN>` — one chain, walletId `<CHAIN>` (an upper-case chain symbol or a chain id); both are required
 - `LOCAL_SIGNER_EVM_WALLET_<ID>_PRIVATE_KEY` / `_RPC_URL`, optional `_CHAIN_ID` / `_CHAIN_SYMBOL` — slots, walletId `<ID>`
 
-Non-EVM families use slots for multiple wallets; both the key and the RPC are required. The default keys have the wallet ids `SOLANA_DEFAULT`, `TRX_DEFAULT`, `STX_DEFAULT` and `SRB_DEFAULT`. Write wallet ids in upper case:
+Non-EVM families use slots for multiple wallets; both the key and the RPC are required. The default keys have the wallet ids `SOLANA_DEFAULT`, `TRX_DEFAULT`, `STX_DEFAULT`, `SRB_DEFAULT` and `SUI_DEFAULT`. Write wallet ids in upper case:
 
 - `LOCAL_SIGNER_SOL_WALLET_<walletId>_PRIVATE_KEY`
 - `LOCAL_SIGNER_SOL_WALLET_<walletId>_RPC_URL`
@@ -106,3 +109,5 @@ Non-EVM families use slots for multiple wallets; both the key and the RPC are re
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_PRIVATE_KEY`
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_RPC_URL`
 - `LOCAL_SIGNER_SRB_WALLET_<walletId>_NETWORK_PASSPHRASE` (optional, falls back to `LOCAL_SIGNER_SRB_NETWORK_PASSPHRASE`)
+- `LOCAL_SIGNER_SUI_WALLET_<walletId>_PRIVATE_KEY` (`suiprivkey1…` or 32-byte hex)
+- `LOCAL_SIGNER_SUI_WALLET_<walletId>_RPC_URL` (gRPC-web base URL of a full node)
