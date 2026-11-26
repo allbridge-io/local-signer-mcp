@@ -1,6 +1,6 @@
 {
   "name": "@allbridge/local-signer-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Localhost-oriented MCP server for transaction signing and submission",
   "repository": {
     "type": "git",
@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@mysten/sui": "2.19.0",
     "@solana/web3.js": "1.98.4",
     "@stacks/network": "7.7.0",
     "@stacks/transactions": "7.7.0",
